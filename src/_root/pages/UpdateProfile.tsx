@@ -1,8 +1,15 @@
 import * as z from "zod";
+import { useToast } from "@/components/ui/use-toast";
+import { useUserContext } from "@/context/AuthContext";
+import { useNavigate, useParams } from "react-router-dom";
+import { ProfileValidation } from "@/lib/validation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, useParams } from "react-router-dom";
-
+import {
+  useGetUserById,
+  useUpdateUser,
+} from "@/lib/react-query/queriesAndMutation";
+import Loader from "@/components/shared/Loader";
 import {
   Form,
   FormControl,
@@ -11,17 +18,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
-// import { Textarea, Input, Button } from "@/components/ui";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-// import { ProfileUploader, Loader } from "@/components/shared";
-import Loader from "@/components/shared/Loader";
 import ProfileUploader from "@/components/shared/ProfileUploader";
-import { ProfileValidation } from "@/lib/validation";
-import { useUserContext } from "@/context/AuthContext";
-import { useGetUserById, useUpdateUser } from "@/lib/react-query/queriesAndMutation";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 const UpdateProfile = () => {
   const { toast } = useToast();
@@ -32,26 +32,25 @@ const UpdateProfile = () => {
     resolver: zodResolver(ProfileValidation),
     defaultValues: {
       file: [],
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      bio: user.bio || "",
+      name: user?.name,
+      username: user?.username,
+      email: user?.email,
+      bio: user?.bio || "",
     },
   });
 
-  // Queries
   const { data: currentUser } = useGetUserById(id || "");
-  const { mutateAsync: updateUser, isLoading: isLoadingUpdate } =
+  const { mutateAsync: updateUser, isPending: isLoadingUpdate } =
     useUpdateUser();
 
-  if (!currentUser)
+  if (!currentUser) {
     return (
       <div className="flex-center w-full h-full">
         <Loader />
       </div>
     );
+  }
 
-  // Handler
   const handleUpdate = async (value: z.infer<typeof ProfileValidation>) => {
     const updatedUser = await updateUser({
       userId: currentUser.$id,
@@ -74,6 +73,7 @@ const UpdateProfile = () => {
       bio: updatedUser?.bio,
       imageUrl: updatedUser?.imageUrl,
     });
+
     return navigate(`/profile/${id}`);
   };
 
@@ -94,7 +94,8 @@ const UpdateProfile = () => {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleUpdate)}
-            className="flex flex-col gap-7 w-full mt-4 max-w-5xl">
+            className="flex flex-col gap-7 mt-4 w-full max-w-5xl"
+          >
             <FormField
               control={form.control}
               name="file"
@@ -184,13 +185,15 @@ const UpdateProfile = () => {
               <Button
                 type="button"
                 className="shad-button_dark_4"
-                onClick={() => navigate(-1)}>
+                onClick={() => navigate(-1)}
+              >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className="shad-button_primary whitespace-nowrap"
-                disabled={isLoadingUpdate}>
+                disabled={isLoadingUpdate}
+              >
                 {isLoadingUpdate && <Loader />}
                 Update Profile
               </Button>
